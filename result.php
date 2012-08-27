@@ -1,40 +1,31 @@
 <?php
-require_once("HTMLtemplate.php");
-require_once("connect.php");
-require_once("queryProcessor.php");
-$page = new HTML_Page("Winestore","winestore result",array("This","Is","The","Wine","Store"),"connect-style.css");
+require_once('smartySetup.php');
+require_once('db.php');
+require_once('connect.php');
+require_once('class.WineSearchController.php');
 
-// setting up result table
-$resultTable = new HTML_table();
-$resultTable->class_name = "search_result";
-$table_header_row = new HTML_table_row();
-$table_fields = array("Wine name","Variety","Year","Winery name","Region","Price","Stock","Ordered","Revenue");
-foreach($table_fields as $field)
+$smarty->assign('title','resultView');
+$smarty->assign('current_view','result');
+$smarty->assign('style_sheet_link','connect-style.css');
+if($_GET['submit']=='search')
 {
-		$cell = new HTML_table_header();
-		$cell->addChild(HTML_label::innerText($field));
-		$table_header_row->addChild($cell);
+	$wineSearcher = new WineSearchController($dbconn);
+	$result = $wineSearcher->search($_GET);
+	if(count($result)>0){
+		$smarty->assign('result_headers', array_keys($result[0]));
+		$smarty->assign('results', $result);
+	}
+	else
+	{
+		$smarty->assign('result_headers',array('Sorry bro,'));
+		$smarty->assign('results',array(array('Couldn\'t found the thing you were searching for! Better check yo input or look elsewhere!')));
+	}
 }
-$resultTable->addChild($table_header_row);
+if($_GET['submit']=='')
+{
+	$smarty->assign('result_headers',array('Hola, amigo! Cómo está??'));
+	$smarty->assign('results',array(array('It appears that you end up on this page by mistake. If you are looking for an item in our wine store, please click the button on the left of this message!')));
+}
 
-// accessing the database		
-/**/
-
-/* query as a regular select query*/
-$query = 
-"SELECT * from wine_detail as wd
-WHERE
-('".$_GET["wineName"]."'='' OR wd.wine_name LIKE '%".$_GET["wineName"]."%') AND
-('".$_GET["wineryName"]."'='' OR wd.winery_name LIKE '%".$_GET["wineryName"]."%') AND
-('".$_GET["region"]."'='All' OR region_name LIKE '%".$_GET["region"]."%') AND
-('".$_GET["grape"]."'='' OR variety LIKE '%".$_GET["grape"]."%') AND
-year>=".$_GET["minYear"]." AND year<=".$_GET["maxYear"]." AND stock>=".($_GET["stock"]!=''?$_GET["stock"]:0)." AND sold>=".($_GET["ordered"]!=''?$_GET["ordered"]:0)."
-AND cost>=".($_GET["minPrice"]!=''?$_GET["minPrice"]:0)." AND cost<=".($_GET["maxPrice"]!=''?$_GET["maxPrice"]:"9999")."
-";
-
-//processing query result
-$searchQuery =  new SearchQuery($query,$resultTable, $dbconn);
-$searchQuery->query();
-$page->addChild($resultTable);
-$page->display();
+$smarty->display('resultView.tpl');
 ?>

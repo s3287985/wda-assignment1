@@ -1,5 +1,4 @@
 <?php
-require_once("HTMLtemplate.php");
 
 class NumberValidator extends Validator
 {
@@ -74,5 +73,23 @@ class Validator
 	var $valid = true;
 	function validate(){}
 }
-
+class ValidatorGroup
+{
+	var $valid=true;
+	var $validators;
+	var $messages;
+	function addValidator($validator){
+		$this->validators[] = $validator;
+	}
+	function validate(){
+		$this->messages = array();
+		
+		foreach($this->validators as $validator)
+		{
+			$this->valid=$validator->validate()&&$this->valid;
+			$this->messages[] = $validator->message;
+		}
+		return $this->valid;
+	}
+}
 ?>
