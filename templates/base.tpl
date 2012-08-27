@@ -15,6 +15,7 @@
 				<div id="pageTitle"> WineStore</div>
 				<div id="viewTitle"> current view: {$current_view}</div>
 			</div>
+			{include file="controlPanel.tpl"}
 			{block name=left_pane}{/block}
 		</div>
 		<div id="right-pane">
