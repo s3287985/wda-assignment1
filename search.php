@@ -1,11 +1,18 @@
 <?php
 require_once('smartySetup.php');
 require_once('db.php');
-require_once('connect.php');
+require_once('connectPDO.php');
 require_once('validate.php');
+require_once('sessionHandler.php');
 $smarty->assign('title','searchView');
 $smarty->assign('current_view','search');
 $smarty->assign('style_sheet_link','connect-style.css');
+
+
+$sessionHandler = new SessionHandler();
+$sessionHandler->onLoad();
+
+
 $wineSearchValidators = new ValidatorGroup();
 $yearRangeValidator = new ComparisonValidator("minYear","<=","maxYear");
 $stockValidator = new NumberValidator("stock");
@@ -29,7 +36,7 @@ if($_GET['submit']=='search')
 	}
 	else
 	{
-		$url = 'http://yallara.cs.rmit.edu.au/~s3287985/winestoreC/result.php?';
+		$url = WEB_ROOT.'/result.php?';
 		$variables = $_GET;
 		foreach($_GET as $key=>$value)
 		{
@@ -39,24 +46,25 @@ if($_GET['submit']=='search')
 	}
 }
 
-$result = mysql_query ("Select * from region", $dbconn);
+$result = $dbh->query("Select * from region") or die("failed!");
 $regions = array();
-while($row = mysql_fetch_array($result,MYSQL_ASSOC))
+while($row = $result->fetch(PDO::FETCH_ASSOC))
 {
 	$regions[$row["region_name"]] = $row["region_name"];
 }
 $smarty->assign('regions',$regions);
 
-$result = mysql_query ("Select * from grape_variety", $dbconn);
-$grapes = array('Any','Any');
-while($row = mysql_fetch_array($result,MYSQL_ASSOC))
+$result = $dbh->query("Select * from grape_variety") or die("failed!");
+$grapes = array();
+$grapes["Any"]="Any";
+while($row = $result->fetch(PDO::FETCH_ASSOC))
 {
 	$grapes[$row["variety"]] = $row["variety"];
 }
 $smarty->assign('varieties',$grapes);
-$result = mysql_query("Select min(year) as min,max(year) as max from wine", $dbconn);
+$result = $dbh->query("Select min(year) as min,max(year) as max from wine") or die("failed!");
 $years = array();
-$row = mysql_fetch_array($result,MYSQL_ASSOC);
+$row = $result->fetch(PDO::FETCH_ASSOC);
 $smarty->assign('minYear',$row["min"]);
 $smarty->assign('maxYear',$row['max']);
 $smarty->display('searchView.tpl');
