@@ -1,39 +1,80 @@
 <?php
 class WineSearchController
 {
-	var $databaseConnection;
-	function __construct($databaseConnection)
+	var $databaseHandler;
+	function __construct($databaseHandler)
 	{
-		$this->databaseConnection = $databaseConnection;
+		$this->databaseHandler = $databaseHandler;
 	}
 	function search($params)
 	{
-				// accessing the database		
-		/*
-	
-
-		/* query as a regular select query*/
-		$query = 
-		"SELECT * from wine_detail as wd
-		WHERE
-		('".$_GET["wineName"]."'='' OR wd.wine_name LIKE '%".$_GET["wineName"]."%') AND
-		('".$_GET["wineryName"]."'='' OR wd.winery_name LIKE '%".$_GET["wineryName"]."%') AND
-		('".$_GET["region"]."'='All' OR region_name LIKE '%".$_GET["region"]."%') AND
-		('".$_GET["grape"]."'='Any' OR variety LIKE '%".$_GET["grape"]."%') AND
-		year>=".$_GET["minYear"]." AND year<=".$_GET["maxYear"]." AND stock>=".($_GET["stock"]!=''?$_GET["stock"]:0)." AND sold>=".($_GET["ordered"]!=''?$_GET["ordered"]:0)."
-		AND cost>=".($_GET["minPrice"]!=''?$_GET["minPrice"]:0)." AND cost<=".($_GET["maxPrice"]!=''?$_GET["maxPrice"]:"9999")."
-		";
-
-		//processing query result
-		$resultList=array();
-		$result = mysql_query($query, $this->databaseConnection);
-		$count = mysql_num_rows($result);
-		if($count > 0)
-		{
-			 while($row = mysql_fetch_array($result,MYSQL_ASSOC))
-			{
-					$resultList[] = $row;
-			}
+		$query = "SELECT * from wine_detail as wd
+			WHERE
+			( :wineName ='' OR wd.wine_name LIKE :wineNameSearchString ) AND
+			( :wineryName ='' OR wd.winery_name LIKE :wineryNameSearchString ) AND
+			( :region ='All' OR region_name LIKE :regionSearchString ) AND
+			( :grape ='any' OR variety LIKE :grapeSearchString ) AND
+			year >= :minYear AND year <= :maxYear AND stock >= :stock AND sold >= :sold
+			AND cost >= :minPrice AND cost <= :maxPrice ";
+		$statement = $this->databaseHandler->prepare($query);
+		
+		//prepare query variables
+		$wineName = $params["wineName"];
+		$wineNameSearchString = "%".$params["wineName"]."%";
+		
+		$wineryName = $params["wineryName"];
+		$wineryNameSearchString = "%".$params["wineryName"]."%";
+		
+		$region = $params["winery"];
+		$regionSearchString = "%".$params["winery"]."%";
+		
+		$grape = $params["grape"];
+		$grapeSearchString = "%".$params["grape"]."%";
+		
+		$minYear = $params["minYear"];
+		$minYear=$minYear==''?0:$minYear;
+		
+		$maxYear = $params["maxYear"];
+		$maxYear=$maxYear==''?9999:$maxYear;
+		
+		$stock = $params["stock"];
+		$stock=$stock==''?0:$stock;
+		
+		$sold = $params["sold"];
+		$sold=$sold==''?0:$stock;
+		
+		$minPrice = $params["minPrice"];
+		$minPrice=$minPrice==''?0:$minPrice;
+		
+		$maxPrice = $params["maxPrice"];
+		$maxPrice=$maxPrice==''?9999:$maxYear;
+		
+		//
+		
+		$statement->execute(array(
+		':wineName'=>$wineName,
+		':wineNameSearchString'=>$wineNameSearchString,
+		':wineryName'=>$wineryName,
+		':wineryNameSearchString'=>$wineryNameSearchString,
+		':region'=>$region,
+		':regionSearchString'=>$regionSearchString,
+		':grape'=>$grape,
+		':grapeSearchString'=>$grapeSearchString,
+		':minYear'=>$minYear,
+		':maxYear'=>$maxYear,
+		':stock'=>$stock,
+		':sold'=>$sold,
+		':minPrice'=>$minPrice,
+		':maxPrice'=>$maxPrice
+		));
+		
+		$statement->setFetchMode(PDO::FETCH_ASSOC);
+		$resultList = array();
+		$i=0;
+		while($row = $statement->fetch()){
+			$resultList[] = $row;
+			if($_SESSION['session']==true)
+				$_SESSION['history'][$row['wine_name']]= $row['wine_name'];
 		}
 		return $resultList;
 	}
